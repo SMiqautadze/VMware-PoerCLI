@@ -1,7 +1,3 @@
-Here's a README file for the repository based on best practices for PowerCLI scripts, assuming that the repository contains a variety of PowerCLI scripts and modules.
-
----
-
 # VMware PowerCLI Scripts
 
 **Author:** SMiqautadze
@@ -49,51 +45,6 @@ This repository contains PowerCLI scripts aimed at simplifying tasks and automat
    ```powershell
    Connect-VIServer -Server your_vcenter_server -User your_username -Password your_password
    ```
-
-3. **Run Scripts**:
-   Execute each script as needed. Refer to each script's documentation and usage notes below.
-
-## Scripts
-
-### 1. VM Creation (`Create-VM.ps1`)
-   - **Description**: Automates the creation of a new virtual machine.
-   - **Parameters**:
-     - `-VMName`: Name of the virtual machine.
-     - `-ResourcePool`: Resource pool to deploy the VM to.
-     - `-Datastore`: Datastore where the VM files will reside.
-     - `-Template`: Template to use for the VM creation.
-   - **Example**:
-     ```powershell
-     .\Create-VM.ps1 -VMName "NewVM" -ResourcePool "ProdPool" -Datastore "Datastore01" -Template "WindowsTemplate"
-     ```
-
-### 2. VM Reporting (`VM-Report.ps1`)
-   - **Description**: Generates a report of VMs and their resource utilization.
-   - **Parameters**: None.
-   - **Example**:
-     ```powershell
-     .\VM-Report.ps1
-     ```
-
-### 3. Event Auditing (`Audit-UserEvents.ps1`)
-   - **Description**: Retrieves events for a specific user within vCenter.
-   - **Parameters**:
-     - `-UserName`: Specify the username to audit.
-   - **Example**:
-     ```powershell
-     .\Audit-UserEvents.ps1 -UserName "Domain\User"
-     ```
-
-### 4. VM Snapshots (`Manage-Snapshots.ps1`)
-   - **Description**: Manages snapshots for VMs, including creating, deleting, and reporting snapshots.
-   - **Parameters**:
-     - `-Action`: Action to perform (`Create`, `Delete`, `Report`).
-     - `-VMName`: Target VM for snapshot action.
-   - **Example**:
-     ```powershell
-     .\Manage-Snapshots.ps1 -Action "Create" -VMName "MyVM"
-     ```
-
 ## Usage
 
 1. **Connecting to vCenter**:
@@ -112,7 +63,3 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
-
-Let me know if you'd like more details on specific scripts or any additional sections for the README.
