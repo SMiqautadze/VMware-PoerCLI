@@ -1,0 +1,42 @@
+# Define the subnet prefix
+$subnet = "10.60.1."
+
+# Initialize an array to store IPs that have neither DNS records nor respond to ping
+$noDnsNoPingHosts = @()
+
+# Define the total number of IPs to check within the subnet range
+$totalIPs = 245
+
+# Loop through each IP in the range, starting from 11 up to the total IP count
+for ($i = 11; $i -le $totalIPs; $i++) {
+    # Construct the full IP address by appending the counter to the subnet prefix
+    $ip = "$subnet$i"
+    
+    # Display a progress bar with the percentage of IPs processed
+    Write-Progress -Activity "Pinging IPs" -Status "Processing $ip" -PercentComplete (($i / $totalIPs) * 100)
+    
+    # Test if the IP responds to a ping request
+    if (!(Test-Connection -ComputerName $ip -Count 1 -Quiet)) {
+        # If the ping fails, perform an additional check to retrieve hostname via ping -a
+        $hostname = (Test-Connection -ComputerName $ip -Count 1 -AsJob | Receive-Job | Select-Object -ExpandProperty Address)
+        
+        # Perform a DNS lookup to verify if there's a DNS entry for the IP
+        $dnsResult = nslookup $ip 2>&1
+        if ($dnsResult -match "can't find") {
+            # If both ping and DNS lookup fail, add the IP to the no DNS/no ping list
+            $noDnsNoPingHosts += $ip
+        }
+    }
+}
+
+# Output the list of IPs that have no DNS record and failed the ping test
+$noDnsNoPingHosts
+
+# Retrieve the first IP from the list of IPs that have no DNS entry and no ping response
+$firstNoDnsNoPingIP = $noDnsNoPingHosts | Select-Object -First 1
+
+# Output the first IP from the list, or use it in another script as needed
+$firstNoDnsNoPingIP
+
+# Display the first IP from the list with a label for clarity
+Write-Output "First No DNS/No Ping IP: $firstNoDnsNoPingIP"
