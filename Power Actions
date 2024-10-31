@@ -1,9 +1,3 @@
-# Global variable to hold the default vCenter connection
-$global:defaultviserver
-
-# Disconnect from the vCenter Server (placed here but should be moved to the end)
-Disconnect-VIServer  
-
 # Initialize an array to store power events for all VMs
 $vmPowerEvents = @()
 
