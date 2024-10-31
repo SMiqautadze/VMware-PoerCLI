@@ -1,0 +1,23 @@
+# Retrieve all VMs and sort them alphabetically by name
+Get-VM |
+Sort-Object -Property Name -PipelineVariable vm | 
+
+# For each VM, get its network adapters and filter for those not set to connect at startup
+ForEach-Object -Process { 
+    Get-NetworkAdapter -VM $vm | Where-Object { $_.ConnectionState.StartConnected -ne $true } |
+
+    # Select properties to display for each disconnected network adapter
+    Select-Object 
+        @{N = "VM Name"; E = { $vm.Name }},  # Name of the VM
+        @{N = "Power State"; E = { $vm.PowerState } }, # Current power state of the VM (PoweredOn/PoweredOff)
+        @{N = "Interface"; E = { $_.Name }}, # Name of the network adapter
+        @{N = 'ConnectionState'; E = {
+            # Display the connection state as "Connected" or "NotConnected"
+            if ($_.ConnectionState.Connected) { 'Connected' } else { 'NotConnected' }
+        }},
+        @{N = "Type"; E = { $_.Type }}, # Type of network adapter (e.g., VMXNET3, E1000)
+        @{N = "Connect on Boot"; E = { $_.ConnectionState.StartConnected }} # Indicates whether the adapter is set to connect on boot
+} | 
+
+# Format the output as a table for easy readability
+ft
