@@ -1,0 +1,27 @@
+# Define the username you want to search for
+$specificUser = "Domain\User"
+
+# Initialize an array to store the event data, which will be collected and formatted as custom objects
+$userEventReport = @()
+
+# Retrieve up to 100,000 events from vCenter and filter them to include only those by the specified user
+# The `Where-Object` filter checks for exact matches to the specified username
+$userEvents = Get-VIEvent -MaxSamples 100000 | Where-Object { $_.UserName -eq $specificUser }
+
+# Loop through each event that matches the specified username and store the relevant information in a report
+foreach ($event in $userEvents) {
+    $userEventReport += [PSCustomObject]@{
+        UserName  = $event.UserName                    # The username who performed the action
+        EventType = $event.GetType().Name              # Type of the event, e.g., "VmPoweredOnEvent"
+        VMName    = $event.Entity.Name                 # Name of the associated VM or entity (e.g., VM name)
+        Timestamp = $event.CreatedTime                 # Timestamp of when the event occurred
+        Message   = $event.FullFormattedMessage        # Detailed event message
+    }
+}
+
+# Display the collected event data in a formatted table in the console for easy readability
+$userEventReport | Format-Table -AutoSize
+
+# Optionally, export the report to a CSV file at the specified path
+# This allows for further analysis or reporting in external tools like Excel
+$userEventReport | Export-Csv -Path "C:\Report\UserActionReport.csv" -NoTypeInformation
