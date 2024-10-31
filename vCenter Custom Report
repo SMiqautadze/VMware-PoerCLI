@@ -1,0 +1,83 @@
+# Output file location
+$outputFile = "C:\Report\VMs.csv"
+# Create an empty array to hold the results
+$vmReport = @()
+# Get all VMs
+$vms = Get-VM
+# Initialize a counter for the progress bar
+ $totalVMs = $vms.Count
+ $counter = 0
+foreach ($vm in $vms) {
+    $counter++
+    #Display a progress bar
+    $percentComplete = ($counter / $totalVMs) * 100
+    Write-Progress -Activity "Processing VMs" -Status "Processing VM: $($vm.Name)" -PercentComplete $percentComplete
+    # Get VM basic info
+    $vmName = $vm.Name
+    $powerState = $vm.PowerState
+    $cpuCount = $vm.NumCpu
+    $memoryMB = $vm.MemoryMB
+    $osName = $vm.ExtensionData.Guest.GuestFullName
+    $ipAddress = $vm.ExtensionData.Guest.IPAddress | Where-Object { $_ -match '\d{1,3}(\.\d{1,3}){3}' } | Select-Object -First 1
+    $vmHostName = $vm.VMHost.Name # ESXi host name
+    $storagePolicy = ($vm | Get-SpbmEntityConfiguration).StoragePolicy.Name
+    $cluster = Get-Cluster -VM $vm
+    # Get datastore name where the VM is placed
+    $datastore = ($vm | Get-Datastore).Name
+    # Initialize variable to store the VM group membership
+    $vmGroupName = "None"
+    # Retrieve all VM DRS groups in the cluster
+    $vmGroups = Get-DrsClusterGroup -Cluster $cluster -Type "VMGroup"
+    # Check if the VM belongs to any VM DRS group
+    foreach ($group in $vmGroups) {
+        if ($group.ExtensionData.Vm -contains $vm.ExtensionData.MoRef) {
+            $vmGroupName = $group.Name
+            break
+        }
+    }
+    ####   if ($vmGroupName -eq "None") {
+    ####   Write-Host "  VM does not belong to any group."
+    ####    }
+    #### Get VM total disk capacity (in MiB)
+    #### $totalDiskCapacityMB = ($vm.ExtensionData.LayoutEx.File | Where-Object { $_.Type -eq "diskExtent" } | Measure-Object -Property Size -Sum).Sum / 1MB
+    # Get VM Tags (if any)
+    $tags = (Get-TagAssignment -Entity $vm).Tag.Name -join ","
+    # Print power state for debugging
+    Write-Host "VM: $vmName, PowerState: $powerState"
+    # Conditional logic based on the power state of the VM
+    if ($powerState -ieq "PoweredOn") {
+        # Build the report object for powered-on VMs
+        $vmReport += [PSCustomObject]@{
+            VMName            = $vmName
+            PowerState        = $powerState
+            Host              = $vmHostName
+            VMGroup           = $vmGroupName
+            StoragePolicy     = $storagePolicy
+            Tags              = $tags
+            CPUs              = $cpuCount
+            MemoryMB          = $memoryMB
+            Datastore         = $datastore  # Replacing Template with Datastore
+            PrimaryIPAddress  = $ipAddress
+            OS                = $osName
+            #### TotalDiskCapacity = [math]::Round($totalDiskCapacityMB, 2)
+        }
+    } else {
+        # If the VM is powered off, include all columns but with nulls where applicable
+        $vmReport += [PSCustomObject]@{
+            VMName            = $vmName
+            PowerState        = $powerState
+            Host              = $vmHostName
+            VMGroup           = $vmGroupName
+            StoragePolicy     = $storagePolicy
+            Tags              = $tags
+            CPUs              = $null # CPUs not relevant for powered off VMs
+            MemoryMB          = $null # Memory not relevant for powered off VMs
+            Datastore         = $datastore  # Replacing Template with Datastore
+            PrimaryIPAddress  = $null # No IP address for powered off VMs
+            OS                = $null # OS info not relevant for powered off VMs
+            #### TotalDiskCapacity = [math]::Round($totalDiskCapacityMB, 2)
+        }
+    }
+}
+$vmReport | Export-Csv -Path $outputFile -NoTypeInformation
+Write-Host "Export completed. The file is saved at $outputFile"
