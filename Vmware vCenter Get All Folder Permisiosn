@@ -1,0 +1,60 @@
+# Function to retrieve the full folder path by traversing up the folder hierarchy
+function Get-FolderPath {
+    param ([VMware.VimAutomation.ViCore.Impl.V1.Inventory.FolderImpl]$Folder)
+    
+    # Initialize the path with the current folder name
+    $path = $Folder.Name
+    
+    # Retrieve the parent folder of the current folder
+    $parent = $Folder.Parent
+
+    # Traverse up the folder hierarchy until reaching the top-level folder
+    while ($parent -ne $null -and $parent.GetType().Name -eq "FolderImpl") {
+        # Prepend the parent folder name to the path to build the full path
+        $path = $parent.Name + "\" + $path
+        # Move to the next parent in the hierarchy
+        $parent = $parent.Parent
+    }
+    
+    # Return the full folder path
+    return $path
+}
+
+# Retrieve all VM folders in the vCenter environment
+$folders = Get-Folder -Type VM
+
+# Initialize an array to store folder permissions information
+$folderPermissions = @()
+
+# Loop through each folder to retrieve its permissions
+foreach ($folder in $folders) {
+    # Get permissions assigned to each folder
+    $permissions = Get-VIPermission -Entity $folder
+    
+    # Loop through each permission entry for the folder
+    foreach ($permission in $permissions) {
+        # Create a custom object to store folder permission details
+        $folderPermission = New-Object PSObject -Property @{
+            # Folder name
+            FolderName  = $folder.Name
+            # Full folder path, calculated by the Get-FolderPath function
+            FolderPath  = Get-FolderPath $folder
+            # Principal (user or group) to whom the permission is assigned
+            Principal   = $permission.Principal
+            # Role assigned to the principal (e.g., Admin, Read-Only)
+            Role        = $permission.Role
+            # Propagate property can be uncommented if needed to show if permissions propagate to child objects
+            # Propagate   = $permission.Propagate
+        }
+        
+        # Add the custom object with folder permission details to the array
+        $folderPermissions += $folderPermission
+    }
+}
+
+# Output the folder permissions in table format for viewing in the console
+$folderPermissions | Format-Table -AutoSize | Out-Host
+
+# Optionally, export the folder permissions to a CSV file for reporting
+# Uncomment the line below to export to CSV
+# $folderPermissions | Export-Csv -Path "C:\Report\FolderPermissions.csv" -NoTypeInformation
