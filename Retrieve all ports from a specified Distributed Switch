@@ -1,0 +1,50 @@
+# Retrieve all ports from a specified Distributed Switch (VDS) named "VMware HCIA Distributed Switch"
+$ports = Get-VDPort -VDSwitch "VMware HCIA Distributed Switch"
+
+# Initialize a foreach loop to process each port retrieved
+$portData = foreach ($port in $ports) {
+    # Get the extension data of the port, which contains detailed properties
+    $portInfo = $port.ExtensionData
+    
+    # Retrieve the unique key identifier of the port
+    $portKey = $port.Key
+    
+    # Get information on what the port is connected to, such as a VM or other network entity
+    $connectee = $portInfo.State.RuntimeInfo.LinkPeer
+    
+    # Get the runtime MAC address of the port (useful for identifying connected devices)
+    $runtimeMacAddress = $portInfo.State.RuntimeInfo.MacAddress
+    
+    # Get the name of the port group to which this port belongs
+    $portGroup = $port.Portgroup.Name
+    
+    # Check the link status (up or down) of the port to determine if it’s actively connected
+    $state = $port.IsLinkUp
+    
+    # Retrieve the VLAN ID associated with the port
+    $vlanId = $port.VlanConfiguration.VlanId
+    
+    # Get the name of the port, which may be set by the administrator
+    $Name = $port.Name
+    
+    # Get the name of the Distributed Switch to which this port belongs
+    $dvswitch = $port.Switch
+
+    # Construct a custom PowerShell object for each port with selected properties for easy reporting
+    [PSCustomObject]@{
+        'State'               = $state               # Link state (true if up, false if down)
+        'Port ID'             = $portKey             # Unique ID for the port
+        'Name'                = $Name                # Port name, if specified
+        'Connectee Value'     = $connectee           # Device or entity connected to the port
+        'Runtime MAC Address' = $runtimeMacAddress   # Current MAC address associated with the port
+        'Port Group'          = $portGroup           # Name of the port group the port is part of
+        'VLAN ID'             = $vlanId              # VLAN ID assigned to the port
+        'DVS Name'            = $dvSwitch            # Name of the Distributed Switch
+    }
+}
+
+# Output the collected port data in a table format in the console (commented out here)
+# $portData | Format-Table -AutoSize | Out-Host
+
+# Export the collected port data to a CSV file at the specified path
+$portData | Export-Csv -Path "C:\Report\Report.csv" -NoTypeInformation
