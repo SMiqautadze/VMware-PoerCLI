@@ -1,0 +1,49 @@
+# Global variable to hold the default vCenter connection
+$global:defaultviserver
+
+# Disconnect from the vCenter Server (placed here but should be moved to the end)
+Disconnect-VIServer  
+
+# Initialize an array to store power events for all VMs
+$vmPowerEvents = @()
+
+# Get all VMs in the vCenter environment
+$vms = Get-VM
+
+# Initialize a counter for the progress bar
+$totalVMs = $vms.Count
+$counter = 0
+
+# Loop through each VM to retrieve power on/off events
+foreach ($vm in $vms) {
+    $counter++
+
+    # Display a progress bar to show the percentage of VMs processed
+    $percentComplete = ($counter / $totalVMs) * 100
+    Write-Progress -Activity "Processing VMs" -Status "Processing VM: $($vm.Name)" -PercentComplete $percentComplete
+
+    # Retrieve power on and power off events for the current VM
+    $powerEvents = Get-VIEvent -Entity $vm -MaxSamples 2500000 | Where-Object {
+        $_.FullFormattedMessage -like "*powered on*" -or $_.FullFormattedMessage -like "*powered off*"
+    }
+
+    # Store each power event in a custom object and add it to the report array
+    foreach ($event in $powerEvents) {
+        $vmPowerEvents += [PSCustomObject]@{
+            VMName    = $vm.Name                                       # Name of the VM
+            EventType = if ($event.FullFormattedMessage -like "*powered on*") {"Powered On"} else {"Powered Off"} # Type of event
+            Timestamp = $event.CreatedTime                             # Timestamp of the event
+            User      = $event.UserName                                # Username who triggered the event
+            Message   = $event.FullFormattedMessage                    # Full message of the event
+        }
+    }
+}
+
+# Display the report in a table format in the console
+$vmPowerEvents | Format-Table -AutoSize
+
+# Export the report to a CSV file
+$vmPowerEvents | Export-Csv -Path "C:\Reports\VMPowerEvents.csv" -NoTypeInformation
+
+# Disconnect from the vCenter Server at the end of the script
+Disconnect-VIServer -Confirm:$false
